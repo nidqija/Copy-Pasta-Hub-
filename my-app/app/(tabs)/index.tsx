@@ -100,7 +100,7 @@ const Header: React.FC = () => (
       />
     </View>
 
-    <TouchableOpacity style={styles.signUpButton}>
+    <TouchableOpacity style={styles.signUpButton} onPress={()=> router.push("../SignUp")}>
       <Text style={styles.signUpButtonText}>Join</Text>
     </TouchableOpacity>
   </View>

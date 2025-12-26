@@ -56,6 +56,18 @@ func getPosts(w http.ResponseWriter , r *http.Request , dbpool *pgxpool.Pool){
 	json.NewEncoder(w).Encode(posts)
 }
 
+/*
+func handleInsert(w http.ResponseWriter , r *http.Request , dbpool *pgxpool.Pool){
+    if r.Method != http.MethodPost{
+		http.Error(w , "Method not allowed" , http.StatusMethodNotAllowed);
+		return 
+	} else {
+
+	}
+}
+*/
+
+
 //============================================================================================================================//
 
 func main(){
@@ -85,7 +97,7 @@ func main(){
 
 	defer dbpool.Close()
 
-
+// ====== create posts table if not exists ======= //
 
 	PostTableCreate := `
 	  CREATE TABLE IF NOT EXISTS posts (
@@ -103,6 +115,28 @@ func main(){
 		 }
 
 
+	UserTableCreate := `
+	  CREATE TABLE IF NOT EXISTS users (
+	     id SERIAL PRIMARY KEY,
+		 username TEXT NOT NULL,
+		 email TEXT NOT NULL,
+		 password TEXT NOT NULL
+		 )`;
+		 
+		 _,err = dbpool.Exec(context.Background(),UserTableCreate);
+
+		 if ( err != nil){
+			log.Fatalf("Unable to create user table: %v\n " , err)
+		 } else {
+			log.Println("User table created successfully!");
+		 }
+
+
+
+		
+
+		
+
 
 //=========================
 
@@ -111,15 +145,7 @@ func main(){
 
 	
 
-	PostInsert := `INSERT INTO posts (message) VALUES ($1);`
-
-	_, err = dbpool.Exec(context.Background(), PostInsert , "This is my first post!")
-
-	if ( err != nil){
-		log.Fatalf("Insert error %v\n" , err)
-	} else {
-		log.Println("Post inserted successfully!")
-	}
+	
 
 
 

@@ -1,0 +1,27 @@
+{
+  "name": "copypastahub",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "server": "cd backend_folder && go run main.go",
+    "ngrok": "wait-on && ngrok http 8080",
+    "expo": "cd my-app && npx expo start --tunnel",
+    "dev": "concurrently --kill-others -n \"GO,NGROK,EXPO\" -c \"blue,green,magenta\" \"npm run server\" \"npm run ngrok\" \"npm run expo\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nidqija/Copy-Pasta-Hub-.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/nidqija/Copy-Pasta-Hub-/issues"
+  },
+  "homepage": "https://github.com/nidqija/Copy-Pasta-Hub-#readme",
+  "description": "",
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "wait-on": "^9.0.3"
+  }
+}
