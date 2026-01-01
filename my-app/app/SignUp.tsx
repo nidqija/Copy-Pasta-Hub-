@@ -11,6 +11,7 @@ import {
   ListRenderItem,
   Dimensions,
   Button,
+  Alert,
 } from "react-native";
 
 import { router } from "expo-router";
@@ -22,44 +23,62 @@ const CARD_WIDTH = width - 20;
 
 
 
-interface SignUpData {
-    username: string;
-    email: string;
-    password:string;
-}
-
-
-
 const SignUp: React.FC = () => {
 
    
-  const [username , setUsername] = useState <string>('');
-  const [email , setEmail] = useState <string>('');
-  const [password , setPasword] = useState <string>('');
- /*
-  const handleSubmit = async () => {
+  const [username , setUsername] = useState("");
+  const [email , setEmail] = useState("");
+  const [password , setPasword] = useState("");
 
-    if (!username || !email || !password) {
-        console.error('Username, email, and password are required for sign up.');
-    }
 
-    try {
-        const response = await fetch ('http://localhost:8080/signup' , {
-            method: 'POST',
-            headers: {
-                'Content-Type' : 'application/json'
-            },
-            body: JSON.stringify({
-                username:username,
-                email:email,
-                password:password
-            })
-        })
-    } catch (error){
-        console.error('Error during sign up: ' , error);
-    }
-    };
-*/
+  const handleSubmit = async () =>{
+      if ( !username || !email || !password){
+        Alert.alert("Please fill all the fields");
+        return;
+      }
+
+
+      try {
+        const response = await fetch (
+            "https://unwrinkleable-austin-unreplaced.ngrok-free.dev/api/insertuser",
+
+            {
+              method:"POST",
+              headers : {"Content-Type" : "application/json"} ,
+              body : JSON.stringify({
+                username,
+                email,
+                password
+        }),
+            }
+          
+          );
+                
+          const raw = await response.text();
+          console.log("RAW RESPONSE:", raw);
+
+          if(!response.ok){
+            Alert.alert("Error" , raw || "Something went wrong");
+            return;
+          } else {
+            Alert.alert("Success" , "User registered successfully");
+          }
+
+
+
+
+      
+      } catch ( error ){
+        console.error(error);
+        Alert.alert("Error" , "Failed to register user");
+      }
+
+
+  }
+
+ 
+
+
 
   return (
     <>
@@ -67,18 +86,18 @@ const SignUp: React.FC = () => {
       <Text style={{color: "black" , fontFamily:'Arial' , fontSize:18 , fontWeight:"bold" , padding: 20}}>Sign Up</Text>
 
         <Text style={{color: "black" , fontFamily:'Arial' , fontSize:15 , padding: 20}} >Username</Text>
-        <TextInput value={username}  style={{height:50, width:'90%', alignSelf:'center', borderColor:'gray', borderWidth:1, padding:10, fontSize:16 , marginBottom:20}} multiline={true} placeholder="eg: johndoe" />
+        <TextInput value={username} onChangeText={setUsername} style={{height:50, width:'90%', alignSelf:'center', borderColor:'gray', borderWidth:1, padding:10, fontSize:16 , marginBottom:20}}  placeholder="eg: johndoe" />
 
         <Text style={{color: "black" , fontFamily:'Arial' , fontSize:15 , padding: 20}} >Email</Text>
-        <TextInput value={email} style={{height:50, width:'90%', alignSelf:'center', borderColor:'gray', borderWidth:1, padding:10, fontSize:16 , marginBottom:20}} multiline={true} placeholder="eg: johndoe@example.com" />
+        <TextInput value={email} onChangeText={setEmail} style={{height:50, width:'90%', alignSelf:'center', borderColor:'gray', borderWidth:1, padding:10, fontSize:16 , marginBottom:20}} placeholder="eg: johndoe@example.com" />
 
         <Text style={{color: "black" , fontFamily:'Arial' , fontSize:15 , padding: 20}} >Password</Text>
-        <TextInput value={password} style={{height:50, width:'90%', alignSelf:'center', borderColor:'gray', borderWidth:1, padding:10, fontSize:16 , marginBottom:40}} multiline={true} placeholder="eg: ilovecopypasta" />
+        <TextInput value={password} onChangeText={setPasword} style={{height:50, width:'90%', alignSelf:'center', borderColor:'gray', borderWidth:1, padding:10, fontSize:16 , marginBottom:40}}  placeholder="eg: ilovecopypasta" />
          
         <TouchableOpacity onPress={(()=> router.push ("../Login"))} >
             <Text style={{color:'black' , marginBottom:100 , padding:20 }}>Already have an account? Login</Text>
         </TouchableOpacity>
-        <Button title="Submit" /*onPress={handleSubmit}*/ />       
+        <Button title="Submit" onPress={handleSubmit} />       
     </View>
 
     </>
