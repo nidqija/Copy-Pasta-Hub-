@@ -6,8 +6,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // ==============================structs for json response and posts table==================================//
@@ -35,6 +37,22 @@ type User struct {
 
 
 //============================================function to get posts from posts table=============================================//
+
+
+
+// function to hash password before storing in database //
+func hashPassword(password string) ( string , error){
+
+	// generate hashed password using bcrypt //
+    bytes , err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "" , err
+	} else {
+		// return hashed password as string //
+		return string(bytes) , nil
+	}
+
+}
 
 
 func getPosts(w http.ResponseWriter , r *http.Request , dbpool *pgxpool.Pool){
@@ -110,13 +128,15 @@ func handleInsertUser(w http.ResponseWriter , r *http.Request , dbpool *pgxpool.
 			return
 		}
 
+		hashedPassword , err := hashPassword(user.Password);
+
 		InsertQuery := `INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id;`
-		err := dbpool.QueryRow(context.Background() , InsertQuery , user.Username , user.Email , user.Password).Scan(&user.ID)
+		err = dbpool.QueryRow(context.Background() , InsertQuery , user.Username , user.Email , hashedPassword).Scan(&user.ID)
 
 		if err != nil {
 			http.Error(w , "Failed to insert user" , http.StatusInternalServerError)
 			return 
-		}
+		} 
 
 		w.Header().Set("Content-Type", "application/json")
         json.NewEncoder(w).Encode(map[string]any{
