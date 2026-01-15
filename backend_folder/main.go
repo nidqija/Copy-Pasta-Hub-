@@ -157,7 +157,13 @@ func getPosts(w http.ResponseWriter, r *http.Request, dbpool *pgxpool.Pool) {
 			http.Error(w, "Failed to scan row", http.StatusInternalServerError)
 			return
 		}
+
+		
 		posts = append(posts, post)
+	}
+
+	if posts == nil {
+		posts = []Post{}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -195,36 +201,7 @@ func handleInsertPost(w http.ResponseWriter, r *http.Request, dbpool *pgxpool.Po
 	}
 }
 
-// ======================================= function to insert user into users table ======================================//
 
-func handleInsertUser(w http.ResponseWriter, r *http.Request, dbpool *pgxpool.Pool) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	} else {
-		var user User
-		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-			http.Error(w, "Invalid Error", http.StatusBadRequest)
-			return
-		}
-
-		hashedPassword, err := hashPassword(user.Password)
-
-		InsertQuery := `INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id;`
-		err = dbpool.QueryRow(context.Background(), InsertQuery, user.Username, user.Email, hashedPassword).Scan(&user.ID)
-
-		if err != nil {
-			http.Error(w, "Failed to insert user", http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
-			"message": "User registered successfully",
-			"id":      user.ID,
-		})
-	}
-}
 
 //==================================================main function ========================================================//
 
@@ -298,9 +275,6 @@ func main() {
 	http.HandleFunc("/api/insertposts", func(w http.ResponseWriter, r *http.Request) {
 		handleInsertPost(w, r, dbpool)
 	})
-
-	
-
 
 	http.HandleFunc("/api/signin" , func(w http.ResponseWriter, r *http.Request){
 		handleSignIn(w, r, dbpool)

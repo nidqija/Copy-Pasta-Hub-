@@ -1,5 +1,5 @@
-// HomeScreen.tsx
-import React, { useEffect, useState } from "react";
+// HomeScreen.tsx - WhatsApp-style Chat List
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,76 +10,76 @@ import {
   TouchableOpacity,
   ListRenderItem,
   Dimensions,
+  Image,
 } from "react-native";
-import { AntDesign, Feather, Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { router } from "expo-router";
 
 const { width } = Dimensions.get("window");
-const CARD_WIDTH = width - 20;
-
-import CreatePost from "../CreatePost";
-import { router } from "expo-router";
 
 /* ================= TYPES ================= */
 
-interface ApiPost {
-  id: number;
-  message: string;
-}
-
-interface Post {
+interface Chat {
   id: string;
-  title: string;
-  subreddit: string;
-  user: string;
+  username: string;
+  displayName: string;
+  lastMessage: string;
   time: string;
-  votes: string;
-  comments: string;
-  hasMedia: boolean;
-  preview: string;
+  unreadCount: number;
+  isOnline: boolean;
+  avatar?: string;
 }
 
-interface PostCardProps {
-  post: Post;
+interface ChatItemProps {
+  chat: Chat;
+  onPress: () => void;
 }
 
-/* ================= POST CARD ================= */
+/* ================= CHAT ITEM ================= */
 
-const PostCard: React.FC<PostCardProps> = ({ post }) => {
+const ChatItem: React.FC<ChatItemProps> = ({ chat, onPress }) => {
+  // Generate avatar color based on username
+  const getAvatarColor = (name: string) => {
+    const colors = ["#ff4500", "#25D366", "#0088cc", "#9c27b0", "#ff9800", "#e91e63"];
+    const index = name.charCodeAt(0) % colors.length;
+    return colors[index];
+  };
+
   return (
-    <TouchableOpacity style={styles.cardContainer} activeOpacity={0.8}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.subredditText}>r/{post.subreddit}</Text>
-        <Text style={styles.metaText}>
-          u/{post.user} • {post.time}
-        </Text>
+    <TouchableOpacity style={styles.chatItem} onPress={onPress} activeOpacity={0.7}>
+      {/* Avatar */}
+      <View style={styles.avatarContainer}>
+        <View style={[styles.avatar, { backgroundColor: getAvatarColor(chat.username) }]}>
+          <Text style={styles.avatarText}>
+            {chat.displayName.charAt(0).toUpperCase()}
+          </Text>
+        </View>
+        {chat.isOnline && <View style={styles.onlineIndicator} />}
       </View>
 
-      <Text style={styles.titleText} numberOfLines={2}>
-        {post.title}
-      </Text>
-
-      {post.hasMedia && <View style={styles.mediaPlaceholder} />}
-
-      <Text style={styles.previewText} numberOfLines={3}>
-        {post.preview}
-      </Text>
-
-      <View style={styles.cardFooter}>
-        <View style={styles.footerItem}>
-          <AntDesign size={16} color="#FF4500" />
-          <Text style={styles.voteCount}>{post.votes}</Text>
-          <AntDesign  size={16} color="#777" />
+      {/* Chat Info */}
+      <View style={styles.chatInfo}>
+        <View style={styles.chatHeader}>
+          <Text style={styles.displayName} numberOfLines={1}>
+            {chat.displayName}
+          </Text>
+          <Text style={[styles.timeText, chat.unreadCount > 0 && styles.timeTextUnread]}>
+            {chat.time}
+          </Text>
         </View>
 
-        <View style={styles.footerItem}>
-          <Ionicons name="chatbubble-outline" size={16} color="#777" />
-          <Text style={styles.footerText}>{post.comments}</Text>
+        <View style={styles.chatPreview}>
+          <Text style={styles.usernameText}>@{chat.username}</Text>
+          <Text style={styles.lastMessage} numberOfLines={1}>
+            {chat.lastMessage}
+          </Text>
         </View>
 
-        <View style={styles.footerItem}>
-          <Feather name="share-2" size={16} color="#777" />
-          <Text style={styles.footerText}>Share</Text>
-        </View>
+        {chat.unreadCount > 0 && (
+          <View style={styles.unreadBadge}>
+            <Text style={styles.unreadText}>{chat.unreadCount}</Text>
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -87,87 +87,184 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
 /* ================= HEADER ================= */
 
-const Header: React.FC = () => (
-  <View style={styles.headerContainer}>
-    <Text style={styles.logoText}>CopyPastaHub</Text>
+const Header: React.FC<{ onSearch: (text: string) => void }> = ({ onSearch }) => {
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchText, setSearchText] = useState("");
 
-    <View style={styles.searchBar}>
-      <Ionicons name="search" size={18} color="#777" style={{ marginRight: 5 }} />
-      <TextInput
-        placeholder="Search..."
-        style={styles.searchInput}
-        placeholderTextColor="#777"
-      />
+  return (
+    <View style={styles.headerContainer}>
+      {!isSearching ? (
+        <>
+          <Text style={styles.logoText}>Zen Chatter</Text>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={styles.headerIcon}
+              onPress={() => setIsSearching(true)}
+            >
+              <Ionicons name="search" size={22} color="#555" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerIcon}>
+              <MaterialIcons name="more-vert" size={22} color="#555" />
+            </TouchableOpacity>
+          </View>
+        </>
+      ) : (
+        <View style={styles.searchContainer}>
+          <TouchableOpacity
+            onPress={() => {
+              setIsSearching(false);
+              setSearchText("");
+              onSearch("");
+            }}
+          >
+            <Ionicons name="arrow-back" size={22} color="#555" />
+          </TouchableOpacity>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by username..."
+            placeholderTextColor="#999"
+            value={searchText}
+            onChangeText={(text) => {
+              setSearchText(text);
+              onSearch(text);
+            }}
+            autoFocus
+          />
+          {searchText.length > 0 && (
+            <TouchableOpacity
+              onPress={() => {
+                setSearchText("");
+                onSearch("");
+              }}
+            >
+              <Ionicons name="close" size={22} color="#555" />
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
     </View>
+  );
+};
 
-    <TouchableOpacity style={styles.signUpButton} onPress={()=> router.push("../SignUp")}>
-      <Text style={styles.signUpButtonText}>Join</Text>
-    </TouchableOpacity>
+/* ================= EMPTY STATE ================= */
+
+const EmptyState: React.FC = () => (
+  <View style={styles.emptyContainer}>
+    <Ionicons name="chatbubbles-outline" size={80} color="#ddd" />
+    <Text style={styles.emptyTitle}>No conversations yet</Text>
+    <Text style={styles.emptySubtitle}>
+      Start a new chat by tapping the button below
+    </Text>
   </View>
 );
 
 /* ================= HOME SCREEN ================= */
 
 const HomeScreen: React.FC = () => {
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [filteredChats, setFilteredChats] = useState<Chat[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetch("https://unwrinkleable-austin-unreplaced.ngrok-free.dev/api/posts", {
-      headers: {
-        Authorization: "Bearer my-secret-token",
-        "Content-Type": "application/json",
+    const sampleChats: Chat[] = [
+      {
+        id: "1",
+        username: "john_doe",
+        displayName: "John Doe",
+        lastMessage: "Hey, check out this copypasta! 😂",
+        time: "10:30 AM",
+        unreadCount: 3,
+        isOnline: true,
       },
-    })
-      .then(res => res.json())
-      .then((data: ApiPost[]) => {
-        const mappedPosts: Post[] = data.map(post => ({
-          id: post.id.toString(),
-          title: post.message,
-          subreddit: "copypastahub",
-          user: "anonymous",
-          time: "just now",
-          votes: "1",
-          comments: "0",
-          hasMedia: false,
-          preview: post.message,
-        }));
+      {
+        id: "2",
+        username: "jane_smith",
+        displayName: "Jane Smith",
+        lastMessage: "That's hilarious 🤣",
+        time: "9:45 AM",
+        unreadCount: 0,
+        isOnline: true,
+      },
+      {
+        id: "3",
+        username: "meme_lord",
+        displayName: "Meme Lord",
+        lastMessage: "I have the best collection...",
+        time: "Yesterday",
+        unreadCount: 1,
+        isOnline: false,
+      },
+      {
+        id: "4",
+        username: "pasta_master",
+        displayName: "Pasta Master",
+        lastMessage: "Thanks for sharing!",
+        time: "Yesterday",
+        unreadCount: 0,
+        isOnline: false,
+      },
+      {
+        id: "5",
+        username: "copypasta_king",
+        displayName: "Copypasta King",
+        lastMessage: "New pasta just dropped 🔥",
+        time: "Monday",
+        unreadCount: 5,
+        isOnline: true,
+      },
+    ];
 
-        setPosts(mappedPosts);
-      })
-      .catch(err => console.error("Error fetching posts:", err));
+    setChats(sampleChats);
+    setFilteredChats(sampleChats);
+    setIsLoading(false);
   }, []);
 
-  const renderItem: ListRenderItem<Post> = ({ item }) => (
-    <PostCard post={item} />
+  const handleSearch = (text: string) => {
+    if (text.trim() === "") {
+      setFilteredChats(chats);
+    } else {
+      const filtered = chats.filter(
+        (chat) =>
+          chat.username.toLowerCase().includes(text.toLowerCase()) ||
+          chat.displayName.toLowerCase().includes(text.toLowerCase())
+      );
+      setFilteredChats(filtered);
+    }
+  };
+
+  const handleChatPress = (chat: Chat) => {
+    // Navigate to chat screen (you can implement this later)
+    console.log("Opening chat with:", chat.username);
+  };
+
+  const renderItem: ListRenderItem<Chat> = ({ item }) => (
+    <ChatItem chat={item} onPress={() => handleChatPress(item)} />
   );
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <Header />
+      <Header onSearch={handleSearch} />
 
-      <View style={styles.controlBar}>
-        <TouchableOpacity style={styles.createButton} onPress={() => router.push("../CreatePost")}>
-          <Text style={styles.createButtonText}>+ Create Post</Text>
-        </TouchableOpacity>
+      {filteredChats.length === 0 && !isLoading ? (
+        <EmptyState />
+      ) : (
+        <FlatList
+          data={filteredChats}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
 
-        <Text style={styles.sortLabel}>Sort By:</Text>
-        <TouchableOpacity>
-          <Text style={styles.sortOptionActive}>Hot</Text>
-        </TouchableOpacity>
-        <TouchableOpacity >
-          <Text style={styles.sortOption}>New</Text>
-        </TouchableOpacity>
-        <TouchableOpacity>
-          <Text style={styles.sortOption}>Top</Text>
-        </TouchableOpacity>
-      </View>
-
-      <FlatList
-        data={posts}
-        renderItem={renderItem}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.gridContainer}
-      />
+      {/* Floating Action Button */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => router.push("../CreatePost")}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="chatbubble-ellipses" size={24} color="#fff" />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 };
@@ -177,145 +274,187 @@ const HomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#f0f2f5",
+    backgroundColor: "#fff",
   },
 
+  // Header
   headerContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
     backgroundColor: "#fff",
     borderBottomWidth: 1,
-    borderBottomColor: "#edeff1",
+    borderBottomColor: "#f0f0f0",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   logoText: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: "700",
     color: "#ff4500",
   },
-  searchBar: {
+  headerActions: {
     flexDirection: "row",
     alignItems: "center",
+  },
+  headerIcon: {
+    padding: 8,
+    marginLeft: 8,
+  },
+  searchContainer: {
     flex: 1,
-    marginHorizontal: 10,
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    backgroundColor: "#f6f6f6",
-    borderRadius: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
-  },
-  signUpButton: {
-    backgroundColor: "#ff4500",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  signUpButtonText: {
-    color: "white",
-    fontWeight: "600",
+    fontSize: 16,
+    color: "#1a1a1b",
+    paddingVertical: 8,
   },
 
-  controlBar: {
+  // List
+  listContainer: {
+    paddingVertical: 4,
+  },
+
+  // Chat Item
+  chatItem: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e2e2e2",
   },
-  createButton: {
-    backgroundColor: "#ff4500",
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 10,
+  avatarContainer: {
+    position: "relative",
+    marginRight: 14,
   },
-  createButtonText: {
-    color: "white",
+  avatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: {
+    color: "#fff",
+    fontSize: 20,
     fontWeight: "600",
   },
-  sortLabel: {
-    marginRight: 8,
+  onlineIndicator: {
+    position: "absolute",
+    bottom: 2,
+    right: 2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: "#25D366",
+    borderWidth: 2,
+    borderColor: "#fff",
   },
-  sortOption: {
-    color: "#777",
-    marginRight: 15,
+  chatInfo: {
+    flex: 1,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f5f5f5",
+    paddingBottom: 12,
   },
-  sortOptionActive: {
-    color: "#ff4500",
-    fontWeight: "700",
-    marginRight: 15,
-    borderBottomWidth: 2,
-    borderBottomColor: "#ff4500",
-  },
-
-  gridContainer: {
-    paddingHorizontal: 10,
-    paddingBottom: 20,
-  },
-
-  cardContainer: {
-    width: CARD_WIDTH,
-    alignSelf: "center",
-    marginBottom: 10,
-    padding: 15,
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#e2e2e2",
-  },
-  cardHeader: {
+  chatHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 8,
+    alignItems: "center",
+    marginBottom: 4,
   },
-  subredditText: {
-    fontWeight: "700",
-    color: "#0079d3",
-  },
-  metaText: {
-    fontSize: 12,
-    color: "#777",
-  },
-  titleText: {
-    fontSize: 18,
+  displayName: {
+    fontSize: 16,
     fontWeight: "600",
-    marginBottom: 8,
+    color: "#1a1a1b",
+    flex: 1,
+    marginRight: 8,
   },
-  previewText: {
-    fontSize: 14,
-    color: "#333",
+  timeText: {
+    fontSize: 12,
+    color: "#999",
   },
-  mediaPlaceholder: {
-    height: 180,
-    backgroundColor: "#f0f0f0",
-    borderRadius: 6,
-    marginVertical: 10,
+  timeTextUnread: {
+    color: "#ff4500",
+    fontWeight: "600",
   },
-  cardFooter: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginTop: 10,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: "#f0f0f0",
-  },
-  footerItem: {
+  chatPreview: {
     flexDirection: "row",
     alignItems: "center",
   },
-  voteCount: {
-    marginHorizontal: 4,
-    fontWeight: "600",
-    color: "#FF4500",
+  usernameText: {
+    fontSize: 13,
+    color: "#ff4500",
+    fontWeight: "500",
+    marginRight: 8,
   },
-  footerText: {
-    marginLeft: 4,
+  lastMessage: {
+    fontSize: 14,
     color: "#777",
+    flex: 1,
+  },
+  unreadBadge: {
+    position: "absolute",
+    right: 0,
+    bottom: 14,
+    backgroundColor: "#ff4500",
+    borderRadius: 12,
+    minWidth: 22,
+    height: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 6,
+  },
+  unreadText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+
+  // Empty State
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 40,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#1a1a1b",
+    marginTop: 20,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: "#777",
+    textAlign: "center",
+  },
+
+  // FAB
+  fab: {
+    position: "absolute",
+    right: 20,
+    bottom: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#ff4500",
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 6,
+    shadowColor: "#ff4500",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
 });
 
